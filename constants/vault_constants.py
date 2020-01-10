@@ -1,0 +1,18 @@
+# CONSTANTS. Linux environment.
+from pathlib import Path
+HOME = str(Path.home())
+
+# change filenames here.
+SEAL_PATH = HOME + "/seal"
+KEY_FILE_NAME = "mykey.key"
+SEAL_FILE_NAME = "seal"
+TOKEN_FILE_NAME = "token"
+
+# ABSOLUTE PATHS OF THE FILES.
+SEAL_FILE_PATH = SEAL_PATH + "/" + SEAL_FILE_NAME
+TOKEN_FILE_PATH = SEAL_PATH + "/" + TOKEN_FILE_NAME
+KEY_FILE_PATH = SEAL_PATH + "/" + KEY_FILE_NAME
+
+# CHANGE SERVER AND PORT INFORMATION HERE.
+VAULT_PORT = "8200"
+VAULT_ADDRESS = f"https://192.168.1.103:{VAULT_PORT}"
