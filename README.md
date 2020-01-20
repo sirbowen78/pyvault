@@ -16,3 +16,4 @@ example vault_init(url=VAULT_ADDRESS, show_token_keys=True)
 example.py shows the usage of the script, this is part of my learning on how to automate process
 with hashicorp vault.
 
+The code was written using hvac 0.9.6, I had several issues using the hvac wrapper, calling the api directly with requests might be a better choice than using hvac, as whichever unexpected exceptions due to bugs will break my script, and the deeper I use hvac in my code the harder it is to maintain it. I would open another branch by using requests module and will stop using hvac.
