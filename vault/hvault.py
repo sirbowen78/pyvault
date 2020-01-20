@@ -1,11 +1,16 @@
 import os
 from hvac import Client
+from hvac.exceptions import InvalidRequest, InvalidPath
 from cryptography.fernet import Fernet, InvalidToken
 import json
 import gc
 import SecureString
 from glob import glob
 from pyvault.constants.vault_constants import SEAL_FILE_PATH, KEY_FILE_PATH, TOKEN_FILE_PATH, SEAL_PATH
+
+
+# Consolidate all hvac exceptions.
+hvac_exceptions = InvalidPath, InvalidRequest
 
 
 def set_seal_path():
@@ -130,3 +135,28 @@ def get_username_password(url="https://127.0.0.1:8200", mount_point="kv", path=N
                                                    mount_point=mount_point)
     vault.sys.seal()
     return resp['data'].get('data', None)
+
+
+# Enable new engine, for username and password use kv version2, version 2 is default.
+def enable_kv_engine(url="https://127.0.0.1:8200", backend_type="kv", path="kv"):
+    '''
+    :param url: hashicorp vault address
+    :param backend_type: kv, ssh, ldap, github, aws
+    :param path: any name you pick, but must be unique
+    :return: response dictionary
+    '''
+    with open(KEY_FILE_PATH, "rb") as unlock:
+        cipher_key = unlock.read()
+    cipher = Fernet(cipher_key)
+    vault = vault_client_with_token(url, cipher=cipher, token_path=TOKEN_FILE_PATH)
+    try:
+        vault.sys.enable_secrets_engine(backend_type=backend_type, path=path)
+        return {
+            "message": f"Engine type {backend_type} and path {path} created.",
+            "error": 0
+        }
+    except hvac_exceptions as e:
+        return {
+            "message": str(e),
+            "error": 1
+        }
