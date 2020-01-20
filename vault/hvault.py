@@ -1,11 +1,11 @@
 import os
 from hvac import Client
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 import json
 import gc
 import SecureString
 from glob import glob
-from constants.vault_constants import SEAL_FILE_PATH, KEY_FILE_PATH, TOKEN_FILE_PATH, VAULT_ADDRESS, SEAL_PATH
+from pyvault.constants.vault_constants import SEAL_FILE_PATH, KEY_FILE_PATH, TOKEN_FILE_PATH, SEAL_PATH
 
 
 def set_seal_path():
@@ -71,9 +71,13 @@ def unseal_vault(url="https://127.0.0.1:8200"):
     for seal_file in seal_files:
         with open(seal_file, "rb") as s_file:
             encrypted_seal = s_file.read()
-            seal_text = cipher.decrypt(encrypted_seal)
+            try:
+                seal_text = cipher.decrypt(encrypted_seal)
+                seals.append(seal_text.decode('utf-8'))
+            except InvalidToken:
+                # there is an invalid token for some reason, this is a workaround.
+                pass
         # collects the seal in a list, decrypted object is a byte hence decode is used.
-        seals.append(seal_text.decode('utf-8'))
     # send seals until vault is unsealed.
     while vault_client.sys.is_sealed():
         vault_client.sys.submit_unseal_keys(seals)
@@ -101,3 +105,28 @@ def seal_vault(url="https://127.0.0.1:8200"):
         "seal_status": vault_client.seal_status['sealed']
     }
 
+
+# INSERT THE USERNAME AND PASSWORD INTO VAULT
+def insert_username_password(url="https://127.0.0.1:8200", mount_point="kv", path=None, **kwargs):
+    with open(KEY_FILE_PATH, "rb") as unlock:
+        cipher_key = unlock.read()
+    cipher = Fernet(cipher_key)
+    vault = vault_client_with_token(url, cipher=cipher, token_path=TOKEN_FILE_PATH)
+    resp = vault.secrets.kv.v2.create_or_update_secret(
+        path=path,
+        secret=kwargs,
+        mount_point=mount_point
+    )
+    vault.sys.seal()
+    return resp
+
+
+def get_username_password(url="https://127.0.0.1:8200", mount_point="kv", path=None):
+    with open(KEY_FILE_PATH, "rb") as unlock:
+        cipher_key = unlock.read()
+    cipher = Fernet(cipher_key)
+    vault = vault_client_with_token(url, cipher=cipher, token_path=TOKEN_FILE_PATH)
+    resp = vault.secrets.kv.v2.read_secret_version(path=path,
+                                                   mount_point=mount_point)
+    vault.sys.seal()
+    return resp['data'].get('data', None)
