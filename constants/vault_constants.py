@@ -2,7 +2,7 @@
 from pathlib import Path
 HOME = str(Path.home())
 
-# change filenames here.
+# change file names here.
 SEAL_PATH = HOME + "/seal"
 KEY_FILE_NAME = "mykey.key"
 SEAL_FILE_NAME = "seal"
@@ -15,4 +15,5 @@ KEY_FILE_PATH = SEAL_PATH + "/" + KEY_FILE_NAME
 
 # CHANGE SERVER AND PORT INFORMATION HERE.
 VAULT_PORT = "8200"
-VAULT_ADDRESS = f"https://192.168.1.103:{VAULT_PORT}"
+VAULT_IP_ADDRESS = "127.0.0.1"
+VAULT_ADDRESS = f"https://{VAULT_IP_ADDRESS}:{VAULT_PORT}"
