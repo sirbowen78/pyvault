@@ -7,6 +7,7 @@ import gc
 import SecureString
 from glob import glob
 from pyvault.constants.vault_constants import SEAL_FILE_PATH, KEY_FILE_PATH, TOKEN_FILE_PATH, SEAL_PATH
+from json.decoder import JSONDecodeError
 
 
 # Consolidate all hvac exceptions.
@@ -117,22 +118,29 @@ def insert_username_password(url="https://127.0.0.1:8200", mount_point="kv", pat
         cipher_key = unlock.read()
     cipher = Fernet(cipher_key)
     vault = vault_client_with_token(url, cipher=cipher, token_path=TOKEN_FILE_PATH)
-    resp = vault.secrets.kv.v2.create_or_update_secret(
-        path=path,
-        secret=kwargs,
-        mount_point=mount_point
-    )
+    try:
+        vault.secrets.kv.v2.create_or_update_secret(
+            path=path,
+            secret=kwargs,
+            mount_point=mount_point,
+        )
+    except JSONDecodeError:
+    # I believe this is a bug in hvac on handling the json, but this breaks the entire script.
+    # hence I need to ignore it.
+    # I am considering using requests module to call api directly instead of using hvac wrapper.
+    # using this hvac is to limited to the bug it has and if I develop more with hvac the harder it is
+    # to correct the problem.
+        pass
     vault.sys.seal()
-    return resp
 
 
+# Get username and password from vault.
 def get_username_password(url="https://127.0.0.1:8200", mount_point="kv", path=None):
     with open(KEY_FILE_PATH, "rb") as unlock:
         cipher_key = unlock.read()
     cipher = Fernet(cipher_key)
     vault = vault_client_with_token(url, cipher=cipher, token_path=TOKEN_FILE_PATH)
-    resp = vault.secrets.kv.v2.read_secret_version(path=path,
-                                                   mount_point=mount_point)
+    resp = vault.secrets.kv.v2.read_secret_version(path=path, mount_point=mount_point)
     vault.sys.seal()
     return resp['data'].get('data', None)
 
